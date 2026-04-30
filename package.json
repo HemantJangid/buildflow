@@ -1,0 +1,16 @@
+{
+  "name": "buildflow",
+  "version": "1.0.0",
+  "private": true,
+  "packageManager": "npm@11.6.2",
+  "workspaces": ["apps/*", "packages/*"],
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "start": "turbo run start",
+    "preview": "turbo run preview"
+  },
+  "devDependencies": {
+    "turbo": "latest"
+  }
+}
