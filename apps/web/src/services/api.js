@@ -93,6 +93,8 @@ export const reportAPI = {
   getProjectReport: (projectId, params) =>
     api.get(`/reports/project/${projectId}`, { params }),
   getProfitLoss: (params) => api.get("/reports/profit-loss", { params }),
+  exportReport: (params) =>
+    api.get("/reports/export", { params, responseType: "blob" }),
 };
 
 // Roles API
