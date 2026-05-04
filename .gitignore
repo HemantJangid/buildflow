@@ -42,3 +42,6 @@ coverage/
 
 # Misc
 *.pem
+
+# Git worktrees
+.worktrees/

@@ -73,3 +73,17 @@ Permissions are defined in `packages/shared/index.js` — the single source of t
 
 ### Geofencing
 Clock-in/out verifies worker GPS coordinates against project site coordinates using Haversine distance in `apps/api/src/utils/geofence.js`.
+
+## Agent skills
+
+### Issue tracker
+
+Issues live in GitHub Issues (`HemantJangid/buildflow`). See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Default label vocabulary (`needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`). See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Multi-context layout — `CONTEXT-MAP.md` at root pointing to `apps/api/CONTEXT.md` and `apps/web/CONTEXT.md`. See `docs/agents/domain.md`.
