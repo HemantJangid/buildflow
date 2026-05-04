@@ -425,8 +425,165 @@ export const getProjectProfitLoss = async (req, res) => {
   }
 };
 
+/**
+ * Escape a value for CSV output.
+ * Wraps in double-quotes and escapes any embedded double-quotes.
+ */
+function csvEscape(value) {
+  const str = value == null ? "" : String(value);
+  return `"${str.replace(/"/g, '""')}"`;
+}
+
+/**
+ * @desc    Export report as CSV
+ * @route   GET /api/reports/export?type=profit-loss&startDate=&endDate=&projectId=
+ * @access  Private (reports:export)
+ */
+export const exportReport = async (req, res) => {
+  try {
+    const { type, startDate, endDate, projectId } = req.query;
+    const organizationId = req.user.organizationId;
+
+    const VALID_TYPES = ["profit-loss", "user-cost", "project"];
+    if (!type || !VALID_TYPES.includes(type)) {
+      return res.status(400).json({
+        success: false,
+        message: `Invalid report type. Must be one of: ${VALID_TYPES.join(", ")}`,
+      });
+    }
+
+    if (type === "profit-loss") {
+      const revenueMatch = { organizationId };
+      const expenseMatch = { organizationId };
+
+      if (startDate || endDate) {
+        revenueMatch.date = {};
+        expenseMatch.date = {};
+        if (startDate) {
+          revenueMatch.date.$gte = new Date(startDate);
+          expenseMatch.date.$gte = new Date(startDate);
+        }
+        if (endDate) {
+          revenueMatch.date.$lte = new Date(endDate);
+          expenseMatch.date.$lte = new Date(endDate);
+        }
+      }
+
+      if (projectId) {
+        revenueMatch.projectId = new mongoose.Types.ObjectId(projectId);
+        expenseMatch.projectId = new mongoose.Types.ObjectId(projectId);
+      }
+
+      const [revenueByProject, expenseByProject] = await Promise.all([
+        Revenue.aggregate([
+          { $match: revenueMatch },
+          { $group: { _id: "$projectId", revenue: { $sum: "$amount" } } },
+        ]),
+        Expense.aggregate([
+          { $match: expenseMatch },
+          { $group: { _id: "$projectId", expenses: { $sum: "$amount" } } },
+        ]),
+      ]);
+
+      // Merge by projectId
+      const projectMap = {};
+      for (const r of revenueByProject) {
+        const id = r._id.toString();
+        projectMap[id] = { projectId: id, revenue: r.revenue, expenses: 0 };
+      }
+      for (const e of expenseByProject) {
+        const id = e._id.toString();
+        if (!projectMap[id]) {
+          projectMap[id] = { projectId: id, revenue: 0, expenses: e.expenses };
+        } else {
+          projectMap[id].expenses = e.expenses;
+        }
+      }
+
+      // Lookup project names
+      const allProjectIds = Object.keys(projectMap);
+      const projects = await Project.find({ _id: { $in: allProjectIds } })
+        .select("name")
+        .lean();
+      const nameMap = Object.fromEntries(
+        projects.map((p) => [p._id.toString(), p.name]),
+      );
+
+      const breakdown = Object.values(projectMap).map((p) => {
+        const netProfit = p.revenue - p.expenses;
+        const margin =
+          p.revenue > 0 ? Number(((netProfit / p.revenue) * 100).toFixed(1)) : 0;
+        return {
+          projectId: p.projectId,
+          projectName: nameMap[p.projectId] || p.projectId,
+          revenue: Number(p.revenue.toFixed(2)),
+          expenses: Number(p.expenses.toFixed(2)),
+          netProfit: Number(netProfit.toFixed(2)),
+          margin,
+        };
+      });
+
+      breakdown.sort((a, b) => b.revenue - a.revenue);
+
+      const totalRevenue = breakdown.reduce((s, p) => s + p.revenue, 0);
+      const totalExpenses = breakdown.reduce((s, p) => s + p.expenses, 0);
+      const netProfit = totalRevenue - totalExpenses;
+      const avgMargin =
+        totalRevenue > 0
+          ? Number(((netProfit / totalRevenue) * 100).toFixed(1))
+          : 0;
+
+      // Build CSV: totals section, blank row, per-project breakdown
+      const header = "section,project,revenue,expenses,net_profit,margin_pct";
+      const totalRow = [
+        csvEscape("TOTALS"),
+        csvEscape("All Projects"),
+        csvEscape(Number(totalRevenue.toFixed(2))),
+        csvEscape(Number(totalExpenses.toFixed(2))),
+        csvEscape(Number(netProfit.toFixed(2))),
+        csvEscape(avgMargin),
+      ].join(",");
+
+      const projectRows = breakdown.map((p) =>
+        [
+          csvEscape("PROJECT"),
+          csvEscape(p.projectName),
+          csvEscape(p.revenue),
+          csvEscape(p.expenses),
+          csvEscape(p.netProfit),
+          csvEscape(p.margin),
+        ].join(","),
+      );
+
+      const csv = [header, totalRow, "", ...projectRows].join("\n");
+
+      // Build filename
+      const start = startDate || "all";
+      const end = endDate || new Date().toISOString().slice(0, 10);
+      const filename = `buildflow-profit-loss-${start}-${end}.csv`;
+
+      res.setHeader("Content-Type", "text/csv");
+      res.setHeader(
+        "Content-Disposition",
+        `attachment; filename="${filename}"`,
+      );
+      return res.status(200).send(csv);
+    }
+
+    // Placeholder for other types (user-cost, project) — future slices
+    return res.status(400).json({
+      success: false,
+      message: `Export for type "${type}" is not yet implemented`,
+    });
+  } catch (error) {
+    logger.error("Export report error", { error: error.message });
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+
 export default {
   getUserCost,
   getProjectReport,
   getProjectProfitLoss,
+  exportReport,
 };

@@ -3,6 +3,7 @@ import {
   getUserCost,
   getProjectReport,
   getProjectProfitLoss,
+  exportReport,
 } from '../controllers/reportController.js';
 import { PERMISSIONS } from '../constants.js';
 import { protect, hasPermission } from '../middleware/auth.js';
@@ -13,5 +14,8 @@ const router = express.Router();
 router.get('/user-cost/:id', protect, hasPermission(PERMISSIONS.REPORTS_READ), getUserCost);
 router.get('/project/:id', protect, hasPermission(PERMISSIONS.REPORTS_READ), getProjectReport);
 router.get('/profit-loss', protect, hasPermission(PERMISSIONS.REPORTS_READ), getProjectProfitLoss);
+
+// Export route - requires reports:export permission
+router.get('/export', protect, hasPermission(PERMISSIONS.REPORTS_EXPORT), exportReport);
 
 export default router;

@@ -10,6 +10,8 @@ import {
   CardContent,
   CardFooter,
 } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Download } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useMessage } from "@/hooks/useMessage";
 import { useOrganizationSettings } from "@/context/OrganizationSettingsContext";
@@ -28,10 +30,12 @@ const Reports = () => {
   const [report, setReport] = useState(null);
   const [reportType, setReportType] = useState(REPORT_TYPE.USER);
   const [loading, setLoading] = useState(false);
-  const { showError, clearMessage } = useMessage();
+  const [exporting, setExporting] = useState(false);
+  const { showError, clearMessage, showSuccess } = useMessage();
   const { currency: orgCurrency } = useOrganizationSettings();
   const { hasPermission } = useAuth();
   const canViewPL = hasPermission(PERMISSIONS.REVENUE_READ);
+  const canExport = hasPermission(PERMISSIONS.REPORTS_EXPORT);
 
   useEffect(() => {
     fetchData();
@@ -94,6 +98,32 @@ const Reports = () => {
   const handleSubmit = (e) => {
     e.preventDefault();
     generateReport();
+  };
+
+  const handleExport = async () => {
+    setExporting(true);
+    try {
+      const params = { type: "profit-loss" };
+      if (dateRange.startDate) params.startDate = dateRange.startDate;
+      if (dateRange.endDate) params.endDate = dateRange.endDate;
+      if (plProjectFilter) params.projectId = plProjectFilter;
+
+      const response = await reportAPI.exportReport(params);
+      const blob = response.data;
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      const start = dateRange.startDate || "all";
+      const end = dateRange.endDate || new Date().toISOString().slice(0, 10);
+      a.download = `buildflow-profit-loss-${start}-${end}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+      showSuccess("Export downloaded");
+    } catch (err) {
+      showError(err.response?.data?.message || "Failed to export");
+    } finally {
+      setExporting(false);
+    }
   };
 
   const projectReportColumns = useMemo(() => {
@@ -230,12 +260,26 @@ const Reports = () => {
             </div>
           </CardContent>
           <CardFooter className="border-t border-border mt-4">
-            <FormActions
-              showCancel={false}
-              submitLabel={loading ? "Generating…" : "Generate report"}
-              loading={loading}
-              size="sm"
-            />
+            <div className="flex items-center gap-3 justify-end w-full">
+              {report && reportType === REPORT_TYPE.PROFIT_LOSS && canExport && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleExport}
+                  disabled={exporting}
+                >
+                  <Download className="mr-2 h-4 w-4" />
+                  {exporting ? "Exporting…" : "Export CSV"}
+                </Button>
+              )}
+              <FormActions
+                showCancel={false}
+                submitLabel={loading ? "Generating…" : "Generate report"}
+                loading={loading}
+                size="sm"
+              />
+            </div>
           </CardFooter>
         </form>
       </Card>
