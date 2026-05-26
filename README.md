@@ -114,6 +114,45 @@ npm run dev
 
 The frontend will run on `http://localhost:3000` and proxy API requests to the backend.
 
+### Docker Setup (recommended for new contributors)
+
+Start the full stack (MongoDB + API + Web) with a single command:
+
+```bash
+docker compose up
+```
+
+This starts:
+- **MongoDB 7** on port 27017 (data persists in a named volume)
+- **API server** on port 5001
+- **Web dev server** on port 5173 (proxies `/api` to the API container)
+
+Open http://localhost:5173 in your browser. Then seed the database:
+
+```bash
+docker compose exec api node apps/api/src/scripts/seedBootstrap.js
+```
+
+To bring everything down (data is preserved):
+```bash
+docker compose down
+```
+
+To bring everything down and delete the data volume:
+```bash
+docker compose down -v
+```
+
+#### Test MongoDB
+
+A separate MongoDB instance for integration tests is available via the test override:
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.test.yml up
+```
+
+This overrides the API to use a test database (`buildflow_test`) on a separate MongoDB instance (port 27018).
+
 ## Default Credentials
 
 After running `npm run seed` (bootstrap):
