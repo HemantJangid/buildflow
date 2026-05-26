@@ -40,6 +40,9 @@ Thumbs.db
 # Testing
 coverage/
 
+# Worktrees
+.worktrees/
+
 # Misc
 *.pem
 
