@@ -13,7 +13,8 @@
     "seed:demo": "node src/scripts/seedDemoData.js",
     "debug:roles": "node src/scripts/debugRoles.js",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "lint": "eslint ."
   },
   "dependencies": {
     "@buildflow/shared": "*",
