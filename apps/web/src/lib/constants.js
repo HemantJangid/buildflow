@@ -7,6 +7,21 @@ export {
   CHANGE_REQUEST_STATUS,
   REVENUE_CATEGORIES,
   REVENUE_STATUS,
+  // Zod validation schemas
+  loginSchema,
+  signupSchema,
+  registerSchema,
+  clockInSchema,
+  clockOutSchema,
+  createProjectSchema,
+  updateProjectSchema,
+  createExpenseSchema,
+  updateExpenseSchema,
+  createRevenueSchema,
+  updateRevenueSchema,
+  createRoleSchema,
+  updateRoleSchema,
+  updateOrganizationSettingsSchema,
 } from "@buildflow/shared";
 
 // Attendance mark statuses (daily sheet: Present / Absent / Partial)
