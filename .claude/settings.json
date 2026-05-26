@@ -1,0 +1,48 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "intercept",
+            "command": "if echo \"$TOOL_INPUT\" | grep -qE '\\.env(\\.|\"$|$)'; then echo 'BLOCKED: .env files must not be edited by Claude Code. Edit them manually.'; exit 1; fi"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "notify",
+            "command": "if echo \"$TOOL_INPUT\" | grep -q 'packages/shared/index.js'; then echo 'REMINDER: You edited packages/shared/index.js. Run `npm run seed:permissions -w @buildflow/api` to reseed permissions.'; fi"
+          }
+        ]
+      },
+      {
+        "matcher": "Write",
+        "hooks": [
+          {
+            "type": "notify",
+            "command": "if echo \"$TOOL_INPUT\" | grep -qE 'apps/api/src/(models|controllers)/'; then echo 'REMINDER: New model/controller created. Ensure it includes organizationId for multi-tenancy scoping.'; fi"
+          }
+        ]
+      },
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "notify",
+            "command": "if echo \"$TOOL_INPUT\" | grep -qE 'apps/api/.*\\.js'; then STATUS=$(curl -sf http://localhost:5001/api/health 2>&1) && echo \"API health check: OK - $STATUS\" || echo 'API health check: UNREACHABLE (is the dev server running?)'; fi"
+          }
+        ]
+      }
+    ]
+  },
+  "enabledPlugins": {
+    "frontend-design@claude-plugins-official": true,
+    "claude-code-setup@claude-plugins-official": true
+  }
+}
