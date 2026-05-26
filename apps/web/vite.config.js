@@ -64,7 +64,7 @@ export default defineConfig({
     allowedHosts: true, // allow ngrok and other tunnel hosts
     proxy: {
       '/api': {
-        target: 'http://localhost:5001',
+        target: process.env.API_PROXY_TARGET || 'http://localhost:5001',
         changeOrigin: true,
       },
     },

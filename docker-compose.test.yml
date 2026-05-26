@@ -1,0 +1,28 @@
+# BuildFlow — test override
+# Usage: docker compose -f docker-compose.yml -f docker-compose.test.yml up
+# Provides a separate MongoDB instance for integration tests on port 27018.
+
+services:
+  mongo-test:
+    image: mongo:7
+    restart: unless-stopped
+    ports:
+      - "27018:27017"
+    volumes:
+      - mongo_test_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  api:
+    environment:
+      MONGODB_URI: mongodb://mongo-test:27017/buildflow_test
+    depends_on:
+      mongo-test:
+        condition: service_healthy
+
+volumes:
+  mongo_test_data:

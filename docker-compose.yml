@@ -1,0 +1,51 @@
+# BuildFlow — local development stack
+# Usage: docker compose up
+# The full stack is available at http://localhost:5173
+
+services:
+  mongo:
+    image: mongo:7
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    restart: unless-stopped
+    ports:
+      - "5001:5001"
+    environment:
+      PORT: 5001
+      MONGODB_URI: mongodb://mongo:27017/buildflow
+      JWT_SECRET: docker-local-dev-secret
+      JWT_EXPIRES_IN: 7d
+      NODE_ENV: development
+    depends_on:
+      mongo:
+        condition: service_healthy
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    restart: unless-stopped
+    ports:
+      - "5173:5173"
+    environment:
+      VITE_API_BASE_URL: /api
+      API_PROXY_TARGET: http://api:5001
+    depends_on:
+      - api
+
+volumes:
+  mongo_data:
