@@ -13,6 +13,7 @@ import {
 import { PERMISSIONS, USER_CATEGORIES } from '../constants.js';
 import { protect, hasPermission } from '../middleware/auth.js';
 import validate from '../middleware/validate.js';
+import { loginLimiter, signupLimiter } from '../middleware/rateLimiter.js';
 
 const router = express.Router();
 
@@ -50,9 +51,9 @@ const signupValidation = [
 ];
 
 // Routes
-router.post('/signup', signupValidation, validate, signup);
+router.post('/signup', signupLimiter, signupValidation, validate, signup);
 router.post('/register', protect, hasPermission(PERMISSIONS.USERS_CREATE), registerValidation, validate, register);
-router.post('/login', loginValidation, validate, login);
+router.post('/login', loginLimiter, loginValidation, validate, login);
 router.get('/me', protect, getMe);
 router.get('/users/options', protect, hasPermission(PERMISSIONS.USERS_READ), getUserOptions);
 router.get('/users', protect, hasPermission(PERMISSIONS.USERS_READ), getAllUsers);
