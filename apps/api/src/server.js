@@ -3,6 +3,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import connectDB from './config/database.js';
 import routes from './routes/index.js';
+import { generalLimiter } from './middleware/rateLimiter.js';
 import requestLogger from './middleware/requestLogger.js';
 import logger from './utils/logger.js';
 
@@ -37,8 +38,8 @@ app.use(
   })
 );
 
-// API Routes
-app.use('/api', routes);
+// API Routes (general rate limiter applied before routes)
+app.use('/api', generalLimiter, routes);
 
 // Health check route
 app.get('/health', (req, res) => {
